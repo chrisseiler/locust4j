@@ -129,7 +129,7 @@ public class TestLocust {
         };        
         runner.setState(RunnerState.Stopped);
         task.run();        
-        assertFalse(task.onStopCalled);     
+        assertFalse(task.onStopCalled);
     }
 
     @Test

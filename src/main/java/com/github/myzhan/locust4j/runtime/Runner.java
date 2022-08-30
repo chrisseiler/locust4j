@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.github.myzhan.locust4j.AbstractTask;
 import com.github.myzhan.locust4j.Locust;
 import com.github.myzhan.locust4j.message.Message;
+import com.github.myzhan.locust4j.message.MessageListener;
 import com.github.myzhan.locust4j.rpc.Client;
 import com.github.myzhan.locust4j.stats.Stats;
 import com.github.myzhan.locust4j.utils.Utils;
@@ -90,6 +91,11 @@ public class Runner {
      * Stats collect successes and failures.
      */
     private Stats stats;
+
+    /**
+     * Allows for custom handlers for messages received from master
+     */
+    private final Map<String, List<MessageListener>> messageListeners = new HashMap<>();
 
     /**
      * Use this for naming threads in the thread pool.
@@ -291,11 +297,34 @@ public class Runner {
         this.spawnComplete();
     }
 
+    public void addMessageListener(String messageType, MessageListener messageListener) {
+        synchronized(messageListeners) {
+            List<MessageListener> listeners = messageListeners.get(messageType);
+            if(listeners == null) {
+                listeners = new ArrayList<>();
+            }
+            listeners.add(messageListener);
+            messageListeners.put(messageType, listeners);
+        }
+    }
+
     private void onMessage(Message message) {
         String type = message.getType();
 
+        boolean hasListeners;
+        synchronized(messageListeners) {
+            hasListeners = messageListeners.containsKey(type);
+            if(hasListeners) {
+                for (MessageListener listener : messageListeners.get(type)) {
+                    listener.accept(message);
+                }
+            }
+        }
+
         if (!"spawn".equals(type) && !"stop".equals(type) && !"quit".equals(type)) {
-            logger.error("Got {} message from master, which is not supported, please report an issue to locust4j.", type);
+            if(!hasListeners) {
+                logger.error("Got {} message from master, which is not supported, please report an issue to locust4j.", type);
+            }
             return;
         }
 

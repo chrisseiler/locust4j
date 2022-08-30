@@ -11,19 +11,18 @@ import java.util.concurrent.TimeUnit;
 import com.github.myzhan.locust4j.AbstractTask;
 import com.github.myzhan.locust4j.LocustTestHelper;
 import com.github.myzhan.locust4j.message.Message;
+import com.github.myzhan.locust4j.message.MessageListener;
 import com.github.myzhan.locust4j.stats.Stats;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 /**
  * @author myzhan
@@ -74,6 +73,14 @@ public class TestRunner {
         }
     }
 
+    private static class TestMessageListener implements MessageListener {
+        private boolean hasReceivedMessage = false;
+        public void accept(Message message) {
+            hasReceivedMessage = true;
+        }
+
+    }
+
     @Test
     public void TestStartSpawning() {
         runner.startSpawning(10);
@@ -108,7 +115,9 @@ public class TestRunner {
 
         runner.setHeartbeatStopped(true);
 
+        TestMessageListener testMessageListener = new TestMessageListener();
         runner.getReady();
+        runner.addMessageListener("test_message", testMessageListener);
         Message clientReady = client.getToServerQueue().take();
         assertEquals("client_ready", clientReady.getType());
         assertNull(clientReady.getData());
@@ -139,6 +148,12 @@ public class TestRunner {
         assertEquals("spawning_complete", spawnComplete.getType());
         assertEquals(1, spawnComplete.getData().get("count"));
         assertEquals(runner.nodeID, spawnComplete.getNodeID());
+
+        // check for custom message handling
+        client.getFromServerQueue().offer(new Message("test_message", null, -1, null));
+        // wait for message to be received
+        Thread.sleep(1000L);
+        assertTrue(testMessageListener.hasReceivedMessage);
 
         // send stop message
         client.getFromServerQueue().offer(new Message(

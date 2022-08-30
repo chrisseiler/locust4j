@@ -1,5 +1,6 @@
 package com.github.myzhan.locust4j;
 
+import com.github.myzhan.locust4j.message.MessageListener;
 import com.github.myzhan.locust4j.ratelimit.AbstractRateLimiter;
 import com.github.myzhan.locust4j.ratelimit.StableRateLimiter;
 import com.github.myzhan.locust4j.rpc.Client;
@@ -9,6 +10,7 @@ import com.github.myzhan.locust4j.stats.RequestFailure;
 import com.github.myzhan.locust4j.stats.RequestSuccess;
 import com.github.myzhan.locust4j.stats.Stats;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
@@ -137,6 +139,10 @@ public class Locust {
 
     protected Runner getRunner() {
         return this.runner;
+    }
+
+    public void addMessageListener(String messageType, MessageListener messageListener) {
+        this.runner.addMessageListener(messageType, messageListener);
     }
 
     private List<AbstractTask> removeInvalidTasks(List<AbstractTask> tasks) {
