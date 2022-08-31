@@ -115,9 +115,11 @@ public class TestRunner {
 
         runner.setHeartbeatStopped(true);
 
-        TestMessageListener testMessageListener = new TestMessageListener();
+        TestMessageListener listener1 = new TestMessageListener();
+        TestMessageListener listener2 = new TestMessageListener();
         runner.getReady();
-        runner.addMessageListener("test_message", testMessageListener);
+        runner.addMessageListener("test_message", listener1);
+        runner.addMessageListener("not_a_test_message", listener2);
         Message clientReady = client.getToServerQueue().take();
         assertEquals("client_ready", clientReady.getType());
         assertNull(clientReady.getData());
@@ -153,7 +155,8 @@ public class TestRunner {
         client.getFromServerQueue().offer(new Message("test_message", null, -1, null));
         // wait for message to be received
         Thread.sleep(1000L);
-        assertTrue(testMessageListener.hasReceivedMessage);
+        assertTrue(listener1.hasReceivedMessage);
+        assertFalse(listener2.hasReceivedMessage);
 
         // send stop message
         client.getFromServerQueue().offer(new Message(
